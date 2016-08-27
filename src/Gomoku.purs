@@ -10,7 +10,7 @@ import Data.Monoid (mempty)
 import Data.Pair (Pair, (~))
 import Data.Tuple (Tuple(..), snd)
 import Data.Traversable (find)
-import Data.Foldable (fold)
+import Data.Foldable (fold, all, any, foldl)
 
 -- Markers
 
@@ -57,8 +57,8 @@ markers ∷ Board → Marker → List Coord
 markers (Board b) X = b.markersX
 markers (Board b) O = b.markersO
 
-addMarker ∷ Board → Coord → Marker → Board
-addMarker (Board b) coord marker = Board $
+addMarker ∷ Board → Marker → Coord → Board
+addMarker (Board b) marker coord = Board $
   b { map = insert coord marker b.map
     , markersO = if marker == X then coord : b.markersO else b.markersO
     , markersX = if marker == X then coord : b.markersX else b.markersX
@@ -89,10 +89,22 @@ isOccupied b c = isJust (markerAt b c)
 isFree ∷ Board → Coord → Boolean
 isFree = not <<< isOccupied
 
-hasRun ∷ Board → Maybe Marker
-hasRun (Board b) = snd <$> find runFrom (toList b.map)
+data Direction = E | SE | S | SW
+
+offset ∷ Direction → Coord
+offset E  =    1 ~ 0
+offset SE =    1 ~ 1
+offset S  =    0 ~ 1
+offset SW = (-1) ~ 1
+
+detectRun ∷ Board → Maybe Marker
+detectRun board@(Board b) = snd <$> find runFrom (toList b.map)
   where
-    runFrom (Tuple coord marker) = true -- TODO
+    runFrom (Tuple coord marker) = any (runInDirection coord marker) [E, SE, S, SW]
+    runInDirection coord marker dir = all (_ == Just marker) positions
+      where
+        positions = map (markerAt board <<< toCoord) (1 .. 4)
+        toCoord n = (+) <$> coord <*> ((*) <$> pure n <*> offset dir)
 
 -- Game state
 
@@ -110,17 +122,19 @@ initialState s = GameState
   , player: X
   }
 
+-- AI
+
 instance nodeBoard ∷ Node GameState where
   isTerminal (GameState s) = null (freeCoords s.board)
 
   score (GameState s) =
-    case (hasRun s.board) of
-      Just player → if player == s.player then Win else Lose
+    case (detectRun s.board) of
+      Just player → if player == X then Win else Lose
       Nothing → heuristic s.board s.player
     where
       heuristic board marker = Score 0.0
 
   children (GameState s) = toGameState <$> freeCoords s.board
     where toGameState c =
-            GameState { board: addMarker s.board c s.player
+            GameState { board: addMarker s.board s.player c
                       , player: next s.player }
