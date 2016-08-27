@@ -1,0 +1,25 @@
+{
+  "name": "gomoku",
+  "authors": [
+    "David Peter <mail@david-peter.de>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sharkdp/gomoku.git"
+  },
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-gametree": "^1.0.0",
+    "purescript-pairs": "^3.0.0",
+    "purescript-maps": "^1.1.0"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^1.0.0"
+  }
+}
